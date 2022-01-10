@@ -44,7 +44,7 @@ def get_{{ table_name }}_by_id(db: Session, {{ pkey.name }}: {{ pkey.type }}):
 
 
 # 検索
-def get_{{ table_name }}(db: Session, skip, limit,
+def get_{{ table_name }}(db: Session, skip, limit, sort,
 {% for column in meta %}
     {{ column.column_name }}: Optional[str] = None,
 {% endfor %}
@@ -55,6 +55,9 @@ def get_{{ table_name }}(db: Session, skip, limit,
     if {{ column.column_name }}:
         statement = statement.where(model.{{ table_name }}.{{ column.column_name }}.contains({{ column.column_name }}))
 {% endfor %}
+
+    #if sort:
+    #    statement = statement.order_by(model.{{ table_name }}[sort])
 
     return db.exec(statement.offset(skip).limit(limit)).all()
 

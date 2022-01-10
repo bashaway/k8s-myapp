@@ -70,13 +70,13 @@ def read_{{ table_name }}({{ pkey.name }}: {{ pkey.type }}):
 
 # 検索
 @router.get("/"+table_name+"/", response_model=List[model.{{ table_name }}Read])
-def read_{{ table_name }}(skip: int = 0, limit: int=10,
+def read_{{ table_name }}(skip: int = 0, limit: int=10, sort: Optional[str] = None,
 {% for column in meta %}
     {{ column.column_name }}: Optional[str] = None,
 {% endfor %}
 ):
     with Session(engine) as session:
-        return crud.get_{{ table_name }}(session,skip,limit,{% for column in meta %}{{ column.column_name }},{% endfor %})
+        return crud.get_{{ table_name }}(session,skip,limit,sort,{% for column in meta %}{{ column.column_name }},{% endfor %})
 
 
 # 新規作成
