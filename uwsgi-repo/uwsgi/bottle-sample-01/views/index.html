@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>BOTTLE SAMPLE</title>
+
+  </head>
+
+  <body>
+
+    <h2>Bottleアプリ</h2>
+    <hr>
+
+    <h4>Jinja2テンプレート</h4>
+    bottleからこのページを以下のようにテンプレートとして呼び出している。
+    <pre>return template('index.html', {'param_json': param_json, 'param_list': param_list})
+    </pre>
+
+    HTMLファイル内で<pre>{{ '{{ param_list }}' }}</pre>と書くと<br>
+    {{ param_list }}<br>
+    <br>
+
+    <pre>{{ '{{ param_json }}' }}</pre>と書くと<br>
+    {{ param_json }}<br>
+
+    <hr>
+    <h4>Bottleルーティング</h4>
+    <a href=./hello/>./hello/</a><br>
+    <a href=./hello/display_name>./hello/display_name</a><br>
+    <br>
+
+    <a href=./regex/>./regex/</a><br>
+    <a href=./json/>./json/</a><br>
+
+    <script src="./static/table.js"></script>
+
+  </body>
+</html>
+

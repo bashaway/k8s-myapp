@@ -1,0 +1,62 @@
+from typing import List
+import os, re
+from starlette.middleware.cors import CORSMiddleware
+from fastapi import Depends, FastAPI, HTTPException , Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+from db import engine
+
+path_prefix=os.getenv('FASTAPI_PATH_PREFIX')
+
+app = FastAPI(
+    title='FastAPI APPs',
+    docs_url=path_prefix+'/docs',
+    redoc_url=path_prefix+'/redoc',
+    openapi_url=path_prefix+'/openapi.json',
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    # 許可するオリジンを設定
+    #allow_origins=[
+    #                  "http://PRODUCTION_SERVER",
+    #              ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+templates = Jinja2Templates(directory="templates")
+
+
+@app.get(path_prefix+"/")
+def api_manager():
+
+    tables = [
+{% for table in tables %}
+        '{{ table }}',
+{% endfor %}
+    ]
+    table_info = []
+
+    for name in tables:
+ 
+        table_info.append( {
+                'table_name': name,
+                'base_path': path_prefix+'/'+name+'/',
+                'meta_path': path_prefix+'/'+name+'/meta',
+                'count_path': path_prefix+'/'+name+'/count',
+               })
+
+    return table_info
+
+# データベースに存在する全テーブルをグループごとにまとめる
+{% for table in tables %}
+import {{ table }}.router as {{ table }}_router
+app.include_router({{ table }}_router.router,tags=["{{ table }}"],prefix=path_prefix)
+
+{% endfor %}
+

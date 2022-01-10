@@ -1,0 +1,49 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${REPO_NAME}-deployment
+  namespace: ${K8S_NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${REPO_NAME}-app
+  template:
+    metadata:
+      labels:
+        app: ${REPO_NAME}-app
+    spec:
+
+      volumes:
+        - name: vol-emperor-ini
+          configMap: 
+            name: emperor-ini
+        - name: vol-bottle-sample-01-ini
+          configMap: 
+            name: bottle-sample-01-ini
+        - name: vol-bottle-sample-02-ini
+          configMap: 
+            name: bottle-sample-02-ini
+
+
+      containers:
+        - name: ${REPO_NAME}
+          image: docker-registry.prosper2.net:5000/${K8S_NAMESPACE}/${REPO_NAME}:latest
+          volumeMounts:
+            - name: vol-emperor-ini
+              mountPath: /uwsgi/emperor.ini
+              subPath: emperor.ini
+              readOnly: true
+            - name: vol-bottle-sample-01-ini
+              mountPath: /uwsgi/vassals/bottle-sample-01.ini
+              subPath: bottle-sample-01.ini
+              readOnly: true
+            - name: vol-bottle-sample-02-ini
+              mountPath: /uwsgi/vassals/bottle-sample-02.ini
+              subPath: bottle-sample-02.ini
+              readOnly: true
+          envFrom:
+          - configMapRef:
+              name: ${REPO_NAME}-environment
+

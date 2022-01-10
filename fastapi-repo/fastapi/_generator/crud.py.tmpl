@@ -1,0 +1,106 @@
+from typing import List, Optional
+from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
+from sqlmodel import Session, select
+import {{ table_name }}.model as model
+import common.model as common_model
+
+# レコード数取得
+def get_count(db: Session,
+{% for column in meta %}
+    {{ column.column_name }}: Optional[str] = None,
+{% endfor %}
+) -> common_model.Count:
+    statement = select(model.{{ table_name }})
+
+{% for column in meta %}
+    if {{ column.column_name }}:
+        statement = statement.where(model.{{ table_name }}.id.contains({{ column.column_name }}))
+{% endfor %}
+
+    return {'count': len(db.exec(statement).all()) }
+
+
+# 特定の１レコード取得
+def get_{{ table_name }}_by_id(db: Session, id: int):
+    return db.exec(select(model.{{ table_name }}).where(model.{{ table_name }}.id == id)).first()
+
+
+# 検索
+def get_{{ table_name }}(db: Session, skip, limit,
+{% for column in meta %}
+    {{ column.column_name }}: Optional[str] = None,
+{% endfor %}
+):
+    statement = select(model.{{ table_name }})
+
+{% for column in meta %}
+    if {{ column.column_name }}:
+        statement = statement.where(model.{{ table_name }}.id.contains({{ column.column_name }}))
+{% endfor %}
+
+    return db.exec(statement.offset(skip).limit(limit)).all()
+
+
+# 新規作成
+def create_{{ table_name }}(db: Session, {{ table_name }}: model.{{ table_name }}Base) -> model.{{ table_name }}Read:
+    db_{{ table_name }} = model.{{ table_name }}.from_orm({{ table_name }})
+    db.add(db_{{ table_name }})
+    db.commit()
+    db.refresh(db_{{ table_name }})
+
+    return db_{{ table_name }}
+
+
+# 更新（PUTによる全フィールド更新）
+def update_{{ table_name }}(db: Session, {{ table_name }}: model.{{ table_name }}Base, db_original: model.{{ table_name }}Read) -> model.{{ table_name }}Read:
+    db_{{ table_name }} = model.{{ table_name }}.from_orm({{ table_name }})
+    update_data = db_{{ table_name }}.dict(exclude_unset=True)
+    for key in update_data:
+        setattr(db_original, key , update_data[key])
+
+    try:
+        db.add(db_original)
+        db.commit()
+        db.refresh(db_original)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="database error")
+    finally:
+        db.close()
+
+    return db_original
+
+
+# 更新（Patchによるフィールド更新）
+def patch_{{ table_name }}(db: Session, {{ table_name }}: model.{{ table_name }}Patch, db_original: model.{{ table_name }}Read) -> model.{{ table_name }}Read:
+    update_data = {{ table_name }}.dict(exclude_unset=True)
+    for key in update_data:
+        setattr(db_original, key , update_data[key])
+
+    try:
+        db.add(db_original)
+        db.commit()
+        db.refresh(db_original)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="database error")
+    finally:
+        db.close()
+
+    return db_original
+
+
+# 削除
+def delete_{{ table_name }}(db: Session, db_original: model.{{ table_name }}) -> model.{{ table_name }}Read:
+    try:
+        db.delete(db_original)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="database error")
+    finally:
+        db.close()
+
+    return db_original
+

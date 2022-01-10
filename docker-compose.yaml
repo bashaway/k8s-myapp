@@ -1,0 +1,92 @@
+version: '3'
+
+services:
+
+# CGIスクリプトを動作させるためのコンテナ
+#  nginxで受けて
+#   PHPなら main-repo-phpコンテナへ
+#   Perl/Python/Rubyなら main-repo-cgiコンテナへ
+#   OAUTH2認証されていなければofficial-odicコンテナへ
+  main-repo:
+    build:
+      context: ./main-repo
+      dockerfile: ./Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./main-repo/html:/var/www/html:ro
+      # k8sは同一ポッドはlocalhost(127.0.0.1)でアクセスできるが
+      # docker-composeは別アドレスとなり、名前でアクセスするので、それ用の設定にしておく
+      - ./main-repo/deploy/config/_compose_nginx.conf:/etc/nginx/nginx.conf:ro
+    entrypoint: /usr/sbin/nginx -g 'daemon off;'
+
+  # ランタイムイメージは共通にしてentrypointでやらせることを変える
+  main-repo-cgi:
+    build:
+      context: ./main-repo/
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./main-repo/html:/var/www/html:ro
+    #  perl   -> fcgiwrap
+    #  python -> fcgiwarp
+    #  ruby   -> fcgiwarp
+    entrypoint: spawn-fcgi -p 9999 -n -- /sbin/fcgiwrap
+
+  main-repo-php:
+    build:
+      context: ./main-repo/
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./main-repo/html:/var/www/html:ro
+    #  php    -> php-fpm
+    entrypoint: php-fpm -F 
+
+
+  official-oidc:
+    image: docker-registry.prosper2.net:5000/official/oauth2-proxy:latest
+    volumes:
+      - ./main-repo/deploy/config/oauth2-proxy.cfg:/etc/oauth2-proxy.cfg:ro
+    environment:
+      # docker-composeで起動するときのユーザーの環境変数にセットしておく
+      - OAUTH2_PROXY_CLIENT_ID
+      - OAUTH2_PROXY_CLIENT_SECRET
+      - OAUTH2_PROXY_COOKIE_SECRET
+    command: --config=/etc/oauth2-proxy.cfg 
+
+
+# FastAPIアプリを動作させるためのコンテナ
+# nginxでプロキシされたトラフィックはここに流入する
+  fastapi-repo:
+    build:
+      context: ./fastapi-repo/
+      dockerfile: ./Dockerfile
+    environment:
+      - DB_NAME=fastapidb
+      - DB_USER=myuser
+      - DB_PASS=mypass
+      - DB_HOST=official-mysql
+
+  official-mysql:
+    # latestにすると、caching_sha2_passwordが求められてエラーになる
+    image: docker-registry.prosper2.net:5000/official/mysql:5.7
+    volumes:
+      - ./fastapi-repo/deploy/config/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./fastapi-repo/deploy/config/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      - MYSQL_DATABASE=fastapidb
+      - MYSQL_USER=myuser
+      - MYSQL_PASSWORD=mypass
+      - MYSQL_ROOT_PASSWORD=myrootpass
+
+
+# uWSGIアプリを動作させるためのコンテナ
+# nginxでプロキシされたトラフィックはここに流入する
+  uwsgi-repo:
+    build:
+      context: ./uwsgi-repo/
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./uwsgi-repo/deploy/config/emperor.ini:/uwsgi/emperor.ini:ro
+      # アプリごとの設定にしているため、それぞれ指定する。
+      - ./uwsgi-repo/deploy/config/bottle-sample-01.ini:/uwsgi/vassals/bottle-sample-01.ini:ro
+      - ./uwsgi-repo/deploy/config/bottle-sample-02.ini:/uwsgi/vassals/bottle-sample-02.ini:ro

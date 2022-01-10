@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${REPO_NAME}-deployment
+  namespace: ${K8S_NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${REPO_NAME}-app
+  template:
+    metadata:
+      labels:
+        app: ${REPO_NAME}-app
+    spec:
+
+      volumes:
+        - name: vol-my-cnf
+          configMap: 
+            name: my-cnf
+        - name: vol-init-sql
+          configMap: 
+            name: init-sql
+
+      containers:
+        - name: ${REPO_NAME}
+          image: docker-registry.prosper2.net:5000/${K8S_NAMESPACE}/${REPO_NAME}:latest
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          envFrom:
+          - configMapRef:
+              name: ${REPO_NAME}-environment
+
+
+        - name: mysql
+          image: docker-registry.prosper2.net:5000/official/mysql:5.7
+          volumeMounts:
+            - name: vol-my-cnf
+              mountPath: /etc/mysql/conf.d/my.cnf
+              subPath: my.cnf
+              readOnly: true
+            - name: vol-init-sql
+              mountPath: /docker-entrypoint-initdb.d/init.sql
+              subPath: init.sql
+              readOnly: true
+          envFrom:
+          - configMapRef:
+              name: ${REPO_NAME}-environment

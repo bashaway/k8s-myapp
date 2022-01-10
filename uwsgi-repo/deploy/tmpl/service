@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${REPO_NAME}-service
+  namespace: ${K8S_NAMESPACE}
+spec:
+  type: ClusterIP
+  ports:
+    - name: bottle-sample-01
+      port: 2001
+      targetPort: 2001
+    - name: bottle-sample-02
+      port: 2002
+      targetPort: 2002
+  selector:
+    app: ${REPO_NAME}-app

@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${REPO_NAME}-deployment
+  namespace: ${K8S_NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${REPO_NAME}-app
+  template:
+    metadata:
+      labels:
+        app: ${REPO_NAME}-app
+    spec:
+
+      volumes:
+        - name: vol-nginx-conf
+          configMap: 
+            name: nginx-conf
+        - name: vol-php-ini
+          configMap: 
+            name: php-ini
+        - name: vol-my-cnf
+          configMap: 
+            name: my-cnf
+        - name: vol-init-sql
+          configMap: 
+            name: init-sql
+        - name: vol-oauth2-proxy-cfg
+          configMap: 
+            name: oauth2-proxy-cfg
+
+        - name: vol-html
+          emptyDir: {}
+
+      containers:
+        - name: ${REPO_NAME}
+          image: docker-registry.prosper2.net:5000/${K8S_NAMESPACE}/${REPO_NAME}:latest
+          command: ["/usr/sbin/nginx","-g","daemon off;"]
+          volumeMounts:
+            - name: vol-nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: vol-html
+              mountPath: /var/www/html
+
+          ports:
+            - containerPort: 80
+              protocol: TCP
+
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - "cp -rf /opt/tmp/html /var/www/"
+
+
+        - name: ${REPO_NAME}-cgi
+          image: docker-registry.prosper2.net:5000/${K8S_NAMESPACE}/${REPO_NAME}:latest
+          command: ["spawn-fcgi","-p","9999","-n","--","/sbin/fcgiwrap"]
+          volumeMounts:
+            - name: vol-html
+              mountPath: /var/www/html
+
+        - name: ${REPO_NAME}-php
+          image: docker-registry.prosper2.net:5000/${K8S_NAMESPACE}/${REPO_NAME}:latest
+          command: ["php-fpm","-F"]
+          volumeMounts:
+            - name: vol-html
+              mountPath: /var/www/html
+
+
+        - name: oidc
+          image: docker-registry.prosper2.net:5000/official/oauth2-proxy:latest
+          volumeMounts:
+            - name: vol-oauth2-proxy-cfg
+              mountPath: /etc/oauth2-proxy.cfg
+              subPath: oauth2-proxy.cfg
+              readOnly: true
+          args:
+            - --config=/etc/oauth2-proxy.cfg
+          envFrom:
+          - configMapRef:
+              name: ${REPO_NAME}-environment
+

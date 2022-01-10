@@ -1,0 +1,33 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${REPO_NAME}-ingress
+  namespace: ${K8S_NAMESPACE}
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - host: ingress01.prosper2.net
+    http:
+      paths:
+
+      - path: /uwsgi/bottle-sample-01
+        pathType: Prefix
+        backend:
+          service:
+            name: uwsgi-repo-service
+            port:
+              number: 2001
+
+      - path: /uwsgi/bottle-sample-02
+        pathType: Prefix
+        backend:
+          service:
+            name: uwsgi-repo-service
+            port:
+              number: 2002
+
+
+
+

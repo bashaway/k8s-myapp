@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ${TMP_CONFIG_KEY_NAME}
+  namespace: ${K8S_NAMESPACE}
+data:
+  ${TMP_CONFIG_FILE_NAME}: |-
+${TMP_CONFIG_BODY}
