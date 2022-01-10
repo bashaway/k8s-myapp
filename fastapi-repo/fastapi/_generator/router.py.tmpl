@@ -17,7 +17,7 @@ table_name = '{{ table_name }}'
 {% for column in meta %}
 {% if column.column_primary_key %}
 {% set pkey.name =  column.column_name %}
-{% if 'VARCHAR' in column.column_type %}
+{% if 'CHAR' in column.column_type %}
 {% set pkey.type = 'str' %}
 {% else %}
 {% set pkey.type = 'int' %}

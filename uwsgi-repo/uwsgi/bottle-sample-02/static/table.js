@@ -32,6 +32,7 @@ const tableAppVM = Vue.createApp({
       result: '',
       record_count: '',
       all_pages: '',
+      primary_key: '',
       default_table: 'users',
       default_limit: '10',
       selectable_limits: ['10','20','50','100'],
@@ -133,7 +134,7 @@ const tableAppVM = Vue.createApp({
       axios.get(url)
          .then( response => {
            this.tables = response.data;
-           console.log(response.data);
+           //console.log(response.data);
          })
          .catch( error => {
            console.log(error);
@@ -149,7 +150,13 @@ const tableAppVM = Vue.createApp({
       axios.get(url)
          .then( response => {
            this.table_columns = response.data;
-           //console.log(response.data);
+           //console.table(response.data);
+           for( column of response.data ){
+             if( column.column_primary_key ){
+               this.primary_key = column.column_name;
+             }
+           }
+           //console.log(this.primary_key);
          })
          .catch( error => {
            console.log(error);
@@ -197,7 +204,7 @@ const tableAppVM = Vue.createApp({
 
     read_one(record) {
       let tablePath = '/'+this.current_table+'/';
-      let url = buildUrl(tablePath+record.id);
+      let url = buildUrl(tablePath+record[this.primary_key]);
       axios.get(url)
         .then( response => {
             this.result = response.data;
@@ -207,14 +214,36 @@ const tableAppVM = Vue.createApp({
         .catch( error => {
             this.result = error;
             this.result.msg = "詳細取得エラー";
+            console.table(record);
             console.log(error);
         });
     },
 
 
+    create_one() {
+      let tablePath = '/'+this.current_table+'/';
+      let url = buildUrl(tablePath);
+
+      axios.post(url, this.create_inputs)
+        .then( response => {
+            this.records.push(response.data);
+            this.result = response.data;
+            this.result.msg = "新規登録しました";
+            this.create_inputs = {};
+            this.getRecordCount();
+            //console.log(response);
+        })
+        .catch( error => {
+            this.result = error;
+            this.result.msg = "登録エラー";
+            console.log(error);
+        })
+    },
+
+ 
     update_one(record) {
       let tablePath = '/'+this.current_table+'/';
-      let url = buildUrl(tablePath+record.id);
+      let url = buildUrl(tablePath+record[this.primary_key]);
 
       // 更新された値が空欄である場合
       // カラムがnullableならnullにしてAPIへ投げる
@@ -238,29 +267,9 @@ const tableAppVM = Vue.createApp({
         })
     },
 
-    create_one() {
-      let tablePath = '/'+this.current_table+'/';
-      let url = buildUrl(tablePath);
-
-      axios.post(url, this.create_inputs)
-        .then( response => {
-            this.records.push(response.data);
-            this.result = response.data;
-            this.result.msg = "新規登録しました";
-            this.create_inputs = {};
-            this.getRecordCount();
-            //console.log(response);
-        })
-        .catch( error => {
-            this.result = error;
-            this.result.msg = "登録エラー";
-            console.log(error);
-        })
-    },
- 
     delete_one(record,index) {
       let tablePath = '/'+this.current_table+'/';
-      let url = buildUrl(tablePath+record.id);
+      let url = buildUrl(tablePath+record[this.primary_key]);
       axios.delete(url)
         .then( response => {
             this.result = response.data;
