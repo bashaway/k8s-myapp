@@ -1,15 +1,17 @@
 from typing import Optional
 from sqlmodel import Field, SQLModel
 
+# Jinja2テンプレートによる自動生成
+
 # 主にPOST/PUTのBODYに利用するモデル
 # 新規登録時にAUTO_INCREMENTのカラムは不要なので除外する
 class {{ table_name }}Base(SQLModel):
 {% for column in meta %}
 {% if not column.column_autoincrement %}
-{% if 'VARCHAR' in column.column_type %}
-{% set type = 'str' %}
-{% else %}
+{% if 'INTEGER' in column.column_type %}
 {% set type = 'int' %}
+{% else %}
+{% set type = 'str' %}
 {% endif %}
 {% if  column.column_nullable %}
 {% set type = 'Optional[' + type + '] = None' %}
