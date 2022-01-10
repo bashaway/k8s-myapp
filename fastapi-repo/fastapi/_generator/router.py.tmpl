@@ -11,6 +11,22 @@ router = APIRouter()
 
 table_name = '{{ table_name }}'
 
+
+# このテーブルのプライマリキーとPythonでの型を決める(Jinja2テンプレート処理)
+{% set pkey = namespace() %}
+{% for column in meta %}
+{% if column.column_primary_key %}
+{% set pkey.name =  column.column_name %}
+{% if 'VARCHAR' in column.column_type %}
+{% set pkey.type = 'str' %}
+{% else %}
+{% set pkey.type = 'int' %}
+{% endif %}
+#{{ pkey.name }} : {{ pkey.type }}
+{% endif %}
+{% endfor %}
+
+
 # メタ情報取得
 @router.get("/"+table_name+"/meta", response_model=List[common_model.Meta])
 def get_table_columns():
@@ -42,10 +58,10 @@ def get_count(
 
 
 # 特定の１レコード表示
-@router.get("/"+table_name+"/{id}", response_model=model.{{ table_name }}Read)
-def read_{{ table_name }}(id: int):
+@router.get("/"+table_name+"/{{ '{' }}{{ pkey.name }}{{ '}' }}", response_model=model.{{ table_name }}Read)
+def read_{{ table_name }}({{ pkey.name }}: {{ pkey.type }}):
     with Session(engine) as session:
-        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session, id)
+        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session, {{ pkey.name }})
         if db_{{ table_name }} is None:
             raise HTTPException(status_code=404, detail="id not found")
         return db_{{ table_name }}
@@ -69,30 +85,30 @@ def create_{{ table_name }}({{ table_name }}: model.{{ table_name }}Base):
 
 
 # 更新（PUTによる全フィールド更新）
-@router.put("/"+table_name+"/{id}", response_model=model.{{ table_name }}Read)
-def update_{{ table_name }}(id: int, {{ table_name }}: model.{{ table_name }}Base):
+@router.put("/"+table_name+"/{{ '{' }}{{ pkey.name }}{{ '}' }}", response_model=model.{{ table_name }}Read)
+def update_{{ table_name }}({{ pkey.name }}: {{ pkey.type }}, {{ table_name }}: model.{{ table_name }}Base):
     with Session(engine) as session:
-        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session,id)
+        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session,{{ pkey.name }})
         if db_{{ table_name }} is None:
             raise HTTPException(status_code=404, detail="id not found")
         return crud.update_{{ table_name }}(session,{{ table_name }},db_{{ table_name }})
 
 
 # 更新（Patchによるフィールド更新）
-@router.patch("/"+table_name+"/{id}", response_model=model.{{ table_name }}Read)
-def patch_{{ table_name }}(id: int, {{ table_name }}: model.{{ table_name }}Patch):
+@router.patch("/"+table_name+"/{{ '{' }}{{ pkey.name }}{{ '}' }}", response_model=model.{{ table_name }}Read)
+def patch_{{ table_name }}({{ pkey.name }}: {{ pkey.type }}, {{ table_name }}: model.{{ table_name }}Patch):
     with Session(engine) as session:
-        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session,id)
+        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session,{{ pkey.name }})
         if db_{{ table_name }} is None:
             raise HTTPException(status_code=404, detail="id not found")
         return crud.patch_{{ table_name }}(session,{{ table_name }},db_{{ table_name }})
 
 
 # 削除
-@router.delete("/"+table_name+"/{id}", response_model=model.{{ table_name }}Read)
-def delete_{{ table_name }}(id: int):
+@router.delete("/"+table_name+"/{{ '{' }}{{ pkey.name }}{{ '}' }}", response_model=model.{{ table_name }}Read)
+def delete_{{ table_name }}({{ pkey.name }}: {{ pkey.type }}):
     with Session(engine) as session:
-        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session, id)
+        db_{{ table_name }} = crud.get_{{ table_name }}_by_id(session, {{ pkey.name }})
         if db_{{ table_name }} is None:
             raise HTTPException(status_code=404, detail="id not found")
 

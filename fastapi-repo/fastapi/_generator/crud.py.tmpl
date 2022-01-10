@@ -5,6 +5,21 @@ from sqlmodel import Session, select
 import {{ table_name }}.model as model
 import common.model as common_model
 
+# このテーブルのプライマリキーとPythonでの型を決める(Jinja2テンプレート処理)
+{% set pkey = namespace() %}
+{% for column in meta %}
+{% if column.column_primary_key %}
+{% set pkey.name =  column.column_name %}
+{% if 'VARCHAR' in column.column_type %}
+{% set pkey.type = 'str' %}
+{% else %}
+{% set pkey.type = 'int' %}
+{% endif %}
+#{{ pkey.name }} : {{ pkey.type }}
+{% endif %}
+{% endfor %}
+
+
 # レコード数取得
 def get_count(db: Session,
 {% for column in meta %}
@@ -15,15 +30,15 @@ def get_count(db: Session,
 
 {% for column in meta %}
     if {{ column.column_name }}:
-        statement = statement.where(model.{{ table_name }}.id.contains({{ column.column_name }}))
+        statement = statement.where(model.{{ table_name }}.{{ column.column_name }}.contains({{ column.column_name }}))
 {% endfor %}
 
     return {'count': len(db.exec(statement).all()) }
 
 
 # 特定の１レコード取得
-def get_{{ table_name }}_by_id(db: Session, id: int):
-    return db.exec(select(model.{{ table_name }}).where(model.{{ table_name }}.id == id)).first()
+def get_{{ table_name }}_by_id(db: Session, {{ pkey.name }}: {{ pkey.type }}):
+    return db.exec(select(model.{{ table_name }}).where(model.{{ table_name }}.{{ pkey.name }} == {{ pkey.name }})).first()
 
 
 # 検索
@@ -36,7 +51,7 @@ def get_{{ table_name }}(db: Session, skip, limit,
 
 {% for column in meta %}
     if {{ column.column_name }}:
-        statement = statement.where(model.{{ table_name }}.id.contains({{ column.column_name }}))
+        statement = statement.where(model.{{ table_name }}.{{ column.column_name }}.contains({{ column.column_name }}))
 {% endfor %}
 
     return db.exec(statement.offset(skip).limit(limit)).all()

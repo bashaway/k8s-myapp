@@ -13,13 +13,17 @@ class {{ table_name }}Base(SQLModel):
 {% else %}
 {% set type = 'str' %}
 {% endif %}
-{% if  column.column_nullable %}
+{% if  column.column_nullable  and column.column_primary_key %}
+{% set type = 'Optional[' + type + '] = Field(default=None, primary_key=True)' %}
+{% elif  column.column_nullable and not column.column_primary_key %}
 {% set type = 'Optional[' + type + '] = None' %}
+{% elif not column.column_nullable and column.column_primary_key %}
+{% set type = type + ' = Field(primary_key=True)' %}
 {% endif %}
     {{ column.column_name }}: {{ type }}
 {% endif %}
 {% endfor %}
-
+    pass
 
 # テーブル用のモデル
 # crud内でselectやfrom_ormで利用する
@@ -39,6 +43,7 @@ class {{ table_name }}({{ table_name }}Base, table=True):
     {{ column.column_name }}: {{ type }}
 {% endif %}
 {% endfor %}
+    pass
 
 
 # レスポンスモデルとして利用する
@@ -53,6 +58,7 @@ class {{ table_name }}Read({{ table_name }}Base):
     {{ column.column_name }}: {{ type }}
 {% endif %}
 {% endfor %}
+    pass
 
 
 # PATCHのBODYに利用するモデル
@@ -69,4 +75,5 @@ class {{ table_name }}Patch(SQLModel):
     {{ column.column_name }}: Optional[{{ type }}] = None
 {% endif %}
 {% endfor %}
+    pass
 
