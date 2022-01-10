@@ -52,9 +52,3 @@ https://dev.mysql.com/doc/index-other.html
 
 https://downloads.mysql.com/docs/world-db.tar.gz
 
-https://downloads.mysql.com/docs/world_x-db.tar.gz
-
-https://downloads.mysql.com/docs/sakila-db.tar.gz
-
-https://downloads.mysql.com/docs/menagerie-db.tar.gz
-
