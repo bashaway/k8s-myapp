@@ -30,8 +30,10 @@ class {{ table_name }}Base(SQLModel):
 class {{ table_name }}({{ table_name }}Base, table=True):
 {% for column in meta %}
 {% if column.column_autoincrement %}
-{% if 'CHAR' in column.column_type %}
+{% if 'CHAR' in column.column_type or 'ENUM' in column.column_type %}
 {% set type = 'str' %}
+{% elif 'DECIMAL' in column.column_type %}
+{% set type = 'float' %}
 {% else %}
 {% set type = 'int' %}
 {% endif %}
@@ -50,8 +52,10 @@ class {{ table_name }}({{ table_name }}Base, table=True):
 class {{ table_name }}Read({{ table_name }}Base):
 {% for column in meta %}
 {% if column.column_autoincrement %}
-{% if 'CHAR' in column.column_type %}
+{% if 'CHAR' in column.column_type or 'ENUM' in column.column_type %}
 {% set type = 'str' %}
+{% elif 'DECIMAL' in column.column_type %}
+{% set type = 'float' %}
 {% else %}
 {% set type = 'int' %}
 {% endif %}
@@ -67,8 +71,10 @@ class {{ table_name }}Read({{ table_name }}Base):
 class {{ table_name }}Patch(SQLModel):
 {% for column in meta %}
 {% if not column.column_autoincrement %}
-{% if 'CHAR' in column.column_type %}
+{% if 'CHAR' in column.column_type or 'ENUM' in column.column_type %}
 {% set type = 'str' %}
+{% elif 'DECIMAL' in column.column_type %}
+{% set type = 'float' %}
 {% else %}
 {% set type = 'int' %}
 {% endif %}

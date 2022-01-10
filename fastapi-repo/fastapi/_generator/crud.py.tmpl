@@ -10,8 +10,10 @@ import common.model as common_model
 {% for column in meta %}
 {% if column.column_primary_key %}
 {% set pkey.name =  column.column_name %}
-{% if 'CHAR' in column.column_type %}
+{% if 'CHAR' in column.column_type or 'ENUM' in column.column_type %}
 {% set pkey.type = 'str' %}
+{% elif 'DECIMAL' in column.column_type %}
+{% set pkey.type = 'float' %}
 {% else %}
 {% set pkey.type = 'int' %}
 {% endif %}
